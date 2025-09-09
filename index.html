@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Para Ramiro: Nuestro Universo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Poppins:wght@600&display=swap');
+
+        :root {
+            --font-serif: 'Cormorant Garamond', serif;
+            --font-sans: 'Poppins', sans-serif;
+            --color-text-night: #f0f0f0;
+            --color-text-day: #1f2a38;
+            --color-text-question: #004e98;
+            --color-star: #ffffff;
+            --color-line: rgba(255, 255, 255, 0.6);
+            --color-glow: rgba(230, 230, 255, 0.8);
+            --color-sun: #FFD700;
+            --sky-blue: #E6F7FF;
+            --color-yes: #2a9d8f;
+            --color-no: #e76f51;
+        }
+
+        /* --- Configuración Base --- */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000000;
+            cursor: pointer;
+            transition: background-color 3s ease-in-out;
+        }
+        body {
+            font-family: var(--font-serif);
+            color: var(--color-text-night);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- Capas de Fondo y Universo --- */
+        .background-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            transition: opacity 3.5s ease-in-out;
+        }
+        #starfield { z-index: 0; }
+        .bg-star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle-bg infinite;
+        }
+        #night-sky {
+            background: radial-gradient(ellipse at center, rgba(17, 30, 58, 0) 0%, rgba(10, 20, 40, 0.9) 100%);
+            opacity: 0;
+        }
+        #sunrise {
+            background-color: var(--sky-blue);
+            opacity: 0;
+        }
+        #sun {
+            z-index: 0;
+            bottom: -50vh;
+            left: 50%;
+            width: 50vh;
+            height: 50vh;
+            background: radial-gradient(circle, white 0%, var(--color-sun) 30%, rgba(255, 215, 0, 0) 70%);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: transform 5s ease-out, opacity 5s ease-in, box-shadow 1s ease-out;
+        }
+        #sun.rising { transform: translate(-50%, -15vh); opacity: 1; }
+        #sun.exploding {
+            box-shadow: 0 0 150px 80px var(--color-sun);
+            transform: translate(-50%, -15vh) scale(1.2);
+        }
+
+        /* --- Lienzo SVG para la Constelación --- */
+        #constellation-svg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+        .main-star {
+            filter: drop-shadow(0 0 10px var(--color-glow));
+            animation: appearStar 1.5s ease-out forwards;
+            transform-origin: center;
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .constellation-emoji {
+            font-size: 2.5rem;
+            opacity: 0;
+            transform-origin: center;
+            animation: appearEmoji 1s ease-out forwards 0.3s;
+        }
+        .constellation-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawLine 2s ease-out forwards;
+        }
+        .constellation-pulse .main-star, .constellation-pulse .constellation-line, .constellation-pulse .constellation-emoji {
+            stroke: var(--color-sun);
+            fill: var(--color-sun);
+            animation: pulse-final 2s infinite ease-in-out;
+        }
+
+        /* --- Contenedor del Texto y Caja Final --- */
+        #letter-container {
+            position: relative;
+            z-index: 3;
+            width: 90%;
+            max-width: 900px;
+            text-align: center;
+        }
+        .letter-phrase {
+            font-size: clamp(2rem, 5.5vw, 4rem);
+            line-height: 1.4;
+            text-shadow: 0 0 20px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+        }
+        .letter-phrase.visible { opacity: 1; }
+        .letter-phrase.hidden { opacity: 0; pointer-events: none; }
+        
+        .final-question-box {
+            background: #ffffff;
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 80, 150, 0.2);
+            color: var(--color-text-day);
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 1s ease, transform 1s ease;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .final-question-box.visible { opacity: 1; transform: scale(1); }
+        .final-question-box.answered { opacity: 0; transform: scale(0.9); }
+        
+        #final-video {
+            width: 100%;
+            max-width: 250px; /* Tamaño del video */
+            border-radius: 10px;
+            margin-bottom: 20px;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        #final-video.visible { opacity: 1; }
+
+        .final-question-text {
+            font-size: clamp(1.8rem, 5vw, 3.2rem);
+            font-family: var(--font-sans);
+            font-weight: 600;
+            margin: 0 0 30px 0;
+            color: var(--color-text-question);
+            line-height: 1.3;
+        }
+        .final-choice {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .choice-btn {
+            border: none;
+            color: white;
+            font-family: var(--font-sans);
+            font-size: 1.5rem;
+            font-weight: 600;
+            padding: 12px 35px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .choice-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .choice-btn.yes { background-color: var(--color-yes); }
+        .choice-btn.no { background-color: var(--color-no); }
+
+        .final-declaration {
+             font-size: clamp(2.2rem, 6vw, 4.5rem);
+             color: var(--color-text-night);
+             text-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+        
+        #click-prompt {
+            position: fixed;
+            bottom: 5vh;
+            color: rgba(255, 255, 255, 0.4);
+            font-family: sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            z-index: 5;
+            animation: pulseText 2.5s infinite;
+        }
+        
+        @keyframes twinkle-bg { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.8; } }
+        @keyframes appearStar { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+        @keyframes appearEmoji { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+        @keyframes pulseText { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        @keyframes pulse-final { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    </style>
+</head>
+<body>
+    <audio id="background-music" loop>
+        <source src="tatoo.mp3" type="audio/mpeg">
+    </audio>
+    <div id="starfield" class="background-layer"></div>
+    <div id="night-sky" class="background-layer"></div>
+    <div id="sunrise" class="background-layer"></div>
+    <div id="sun" class="background-layer"></div>
+    <svg id="constellation-svg"></svg>
+    <main id="letter-container"></main>
+
+    <div id="click-prompt">TOCA LA PANTALLA</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const starfield = document.getElementById('starfield');
+            const svg = document.getElementById('constellation-svg');
+            const letterContainer = document.getElementById('letter-container');
+            const promptEl = document.getElementById('click-prompt');
+            const nightSky = document.getElementById('night-sky');
+            const sunrise = document.getElementById('sunrise');
+            const sun = document.getElementById('sun');
+            const body = document.body;
+            const music = document.getElementById('background-music');
+
+            const story = [
+                "Ramiro, mi amor...",
+                "Un <strong>6 de Noviembre</strong>, nuestro universo personal nació con una estrella.",
+                "Pero hace unas semanas, en Feritac, sentí cómo nos robaban el mapa de esa constelación.",
+                "Se llevaron un celular, sí, pero lo que de verdad me quitaron fueron nuestras risas, nuestros viajes...",
+                "Y ahora, en este silencio, me doy cuenta de lo que de verdad extraño con todo mi ser.",
+                "Extraño comer arto contigo, hacernos sanguchitos y tomar un cafecito capuchino.",
+                "Extraño caminar con música y nuestros viajes al sauna. Las cosas más simples que contigo eran increíbles.",
+                "Extraño a mi chanchito, a mi gordito... a mi cholito. La persona con la que me divierto como con nadie más.",
+                "¿Dónde encontraré a otro como tú? Ya estamos casi para el año, y cada día contigo vale oro.",
+                "Perdóname por mis errores. Te amo, Ramiro, y quiero estar contigo.",
+                "Dicen que si fuera fácil, sería aburrido. Si todo esto pasa, es porque nuestro amor es real y vale la pena.",
+            ];
+            const finalQuestion = "Sigamos intentando, te amo y no quiero perderte.<br>¿Aceptas?";
+            
+            const starPoints = [
+                { x: 50, y: 15, emoji: '❤️' }, { x: 40, y: 30, emoji: '👣' }, 
+                { x: 65, y: 40, emoji: '🥪' }, { x: 30, y: 55, emoji: '☕' }, 
+                { x: 50, y: 75, emoji: '🎧' }, { x: 70, y: 60, emoji: '🧖‍♂️' },
+                { x: 80, y: 45, emoji: '🐷' }, { x: 60, y: 20, emoji: '🎮' }, 
+                { x: 25, y: 25, emoji: '🔥' }, { x: 20, y: 70, emoji: '🙏' }, 
+                { x: 80, y: 80, emoji: '🤝' }
+            ];
+
+            let currentStep = -1;
+            let currentPhraseEl = null;
+
+            function createStarfield() {
+                for (let i = 0; i < 100; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'bg-star';
+                    const size = Math.random() * 2 + 1;
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.animationDuration = `${Math.random() * 5 + 3}s`;
+                    star.style.animationDelay = `${Math.random() * 5}s`;
+                    starfield.appendChild(star);
+                }
+            }
+
+            function advanceStory() {
+                if (currentStep === -1) {
+                    music.play().catch(e => console.log("La reproducción automática fue bloqueada. Se requiere interacción."));
+                    promptEl.style.transition = "opacity 0.5s";
+                    promptEl.style.opacity = "0";
+                    body.removeEventListener('click', advanceStory);
+                    setTimeout(() => body.addEventListener('click', advanceStory), 500);
+                }
+
+                currentStep++;
+                if (currentStep >= story.length) {
+                    transformStarsToEmojis();
+                    body.removeEventListener('click', advanceStory);
+                    return;
+                }
+                showPhrase(story[currentStep]);
+                if (starPoints[currentStep]) {
+                    createMainStar(starPoints[currentStep], currentStep);
+                    if (currentStep > 0 && starPoints[currentStep-1]) {
+                        createLine(starPoints[currentStep-1], starPoints[currentStep]);
+                    }
+                }
+                updateAtmosphere();
+            }
+
+            function showPhrase(html, isFinal = false) {
+                 if (currentPhraseEl) currentPhraseEl.classList.add('hidden');
+                
+                const newPhraseEl = document.createElement('p');
+                newPhraseEl.className = 'letter-phrase';
+                if(isFinal) newPhraseEl.classList.add('final-declaration');
+                
+                newPhraseEl.innerHTML = html;
+                letterContainer.appendChild(newPhraseEl);
+                void newPhraseEl.offsetWidth;
+                newPhraseEl.classList.add('visible');
+                currentPhraseEl = newPhraseEl;
+                return newPhraseEl;
+            }
+
+            function transformStarsToEmojis() {
+                if (currentPhraseEl) currentPhraseEl.classList.add('hidden');
+                
+                starPoints.forEach((point, i) => {
+                    const star = document.getElementById(`star-${i}`);
+                    if (star) {
+                        setTimeout(() => {
+                            star.style.opacity = 0;
+                            star.style.transform = 'scale(0)';
+                            createConstellationEmoji(point);
+                        }, i * 100);
+                    }
+                });
+
+                setTimeout(displayFinalChoice, starPoints.length * 100 + 1000);
+            }
+
+            function displayFinalChoice() {
+                const finalBox = document.createElement('div');
+                finalBox.className = 'final-question-box';
+                finalBox.innerHTML = `
+                    <video id="final-video" src="recuerdo.mp4" autoplay loop muted playsinline></video>
+                    <p class="final-question-text">${finalQuestion}</p>
+                    <div class="final-choice">
+                        <button id="yes-btn" class="choice-btn yes">Sí</button>
+                        <button id="no-btn" class="choice-btn no">No</button>
+                    </div>
+                `;
+                letterContainer.appendChild(finalBox);
+                void finalBox.offsetWidth;
+                finalBox.classList.add('visible');
+
+                // Hacer visible el video después de un momento
+                setTimeout(() => {
+                    const video = document.getElementById('final-video');
+                    if (video) video.classList.add('visible');
+                }, 500);
+                
+                document.getElementById('yes-btn').addEventListener('click', handleChoice);
+                document.getElementById('no-btn').addEventListener('click', handleChoice);
+            }
+
+            function handleChoice(event) {
+                event.stopPropagation();
+                
+                const box = document.querySelector('.final-question-box');
+                if (box) box.classList.add('answered');
+
+                sun.classList.add('exploding');
+                svg.classList.add('constellation-pulse');
+
+                const isYes = event.target.id === 'yes-btn';
+                const message = isYes
+                    ? "¡Nuestro camino continúa! Te amo, chanchito ❤️"
+                    : "No importa el camino. Nuestros pasos siempre nos volverán a encontrar. Porque te amo. ❤️";
+                
+                setTimeout(() => {
+                    showPhrase(message, true);
+                }, 500);
+            }
+            
+            function updateAtmosphere() {
+                const progress = currentStep / (story.length);
+                nightSky.style.opacity = Math.min(1, progress * 4);
+                const sunriseStart = 0.7;
+                if (progress > sunriseStart) {
+                    const sunriseProgress = (progress - sunriseStart) / (1 - sunriseStart);
+                    sunrise.style.opacity = sunriseProgress;
+                    nightSky.style.opacity = 1 - sunriseProgress;
+                    if (sunriseProgress > 0.2) sun.classList.add('rising');
+                }
+            }
+
+            function createMainStar(pos, index) {
+                const star = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                star.id = `star-${index}`;
+                star.setAttribute("cx", `${pos.x}%`);
+                star.setAttribute("cy", `${pos.y}%`);
+                star.setAttribute("r", 7);
+                star.setAttribute("fill", "var(--color-star)");
+                star.classList.add("main-star");
+                svg.appendChild(star);
+            }
+            
+            function createConstellationEmoji(pos) {
+                const emoji = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                emoji.setAttribute("x", `${pos.x}%`);
+                emoji.setAttribute("y", `${pos.y}%`);
+                emoji.setAttribute("dominant-baseline", "middle");
+                emoji.setAttribute("text-anchor", "middle");
+                emoji.classList.add("constellation-emoji");
+                emoji.textContent = pos.emoji;
+                svg.appendChild(emoji);
+            }
+
+            function createLine(pos1, pos2) {
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", `${pos1.x}%`);
+                line.setAttribute("y1", `${pos1.y}%`);
+                line.setAttribute("x2", `${pos2.x}%`);
+                line.setAttribute("y2", `${pos2.y}%`);
+                line.setAttribute("stroke", "var(--color-line)");
+                line.setAttribute("stroke-width", 2);
+                line.classList.add("constellation-line");
+                svg.appendChild(line);
+            }
+            
+            createStarfield();
+            body.addEventListener('click', advanceStory, { once: true });
+        });
+    </script>
+</body>
+</html>
